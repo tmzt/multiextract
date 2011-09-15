@@ -34,7 +34,7 @@
 
 #include "../ext2/bio.h"
 #include <endian.h>
-#include "../ext2/endian.h"
+#include "uimage_endian.h"
 
 struct uimage_header {
 	uint32_t	ih_magic;
@@ -83,7 +83,7 @@ static void dump_uimage(bdev *dev, off_t start, off_t size) {
 	fprintf(stderr, "extracting: %s\n", hdr.ih_name);
 	fprintf(stderr, "length: %d\n", hdr.ih_size);
 	char fn[1024];
-	snprintf(fn, 33, "%s.uImage", (char *)(&hdr.ih_name));
+	snprintf(fn, 33, "%s.uImage", (char *)(hdr.ih_name));
 	fprintf(stderr, "writing %s\n", fn);
 	int ofd = open(fn, O_WRONLY);
 	int remaining = hdr.ih_size;
@@ -136,7 +136,8 @@ int main(int argc, char **argv) {
 	fprintf(stderr, "type:\t%d\n", hdr.ih_type);
 	
 	int count = 0;
-	off_t off = sizeof(struct uimage_header) + 4;
+	off_t off = sizeof(struct uimage_header);
+	off_t start = off;
 	uint32_t size = 0;
 	
 	while(count < 16) {
@@ -144,10 +145,13 @@ int main(int argc, char **argv) {
 		if (err < 0)
 			goto err;
 
+		LE32SWAP(size);
 		fprintf(stderr, "size:\t%d\n", size);
 		if (!size) break;
-		
-		dump_uimage(dev, off, size);
+
+		fprintf(stderr, "attempting to dump image at %08x of size %08x\n", start, size);
+		dump_uimage(dev, start, size);
+		start += size;
 		
 		off += 4;
 		count++;
