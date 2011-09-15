@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <sys/fcntl.h>
 
 #include <stdint.h>
@@ -35,7 +36,7 @@
 #include <endian.h>
 #include "../ext2/endian.h"
 
-struct uboot_header {
+struct uimage_header {
 	uint32_t	ih_magic;
 	uint32_t	ih_hcrc;
 	uint32_t	ih_time;
@@ -50,7 +51,7 @@ struct uboot_header {
 	uint8_t		ih_name[32];
 };
 
-static inline void endian_swap_uboot_header(struct uboot_header *hdr) {
+static inline void endian_swap_uimage_header(struct uimage_header *hdr) {
 	LE32SWAP(hdr->ih_magic);
 	LE32SWAP(hdr->ih_hcrc);
 	LE32SWAP(hdr->ih_time);
@@ -62,8 +63,45 @@ static inline void endian_swap_uboot_header(struct uboot_header *hdr) {
 	/* skip string */
 }
 
+static void dump_uimage(bdev *dev, off_t start, off_t size) {
+	struct uimage_header hdr;
+	char buf[4096];
+	
+	int err = bio_read(dev, &hdr, start, sizeof(struct uimage_header));
+	if (err < 0) {
+		fprintf(stderr, "error reading header from image starting at %08x\n", (unsigned int)start);
+		exit(2);
+	};
+	start += sizeof(struct uimage_header);
+	fprintf(stderr, "extracting: %s\n", hdr.ih_name);
+	fprintf(stderr, "length: %d\n", hdr.ih_size);
+	char fn[1024];
+	snprintf(fn, 33, "%s.uImage", (char *)(&hdr.ih_name));
+	fprintf(stderr, "writing %s\n", fn);
+	int ofd = open(fn, O_WRONLY);
+	int remaining = hdr.ih_size;
+	if ((remaining+sizeof(struct uimage_header)) > size) {
+		fprintf(stderr, "invalid uImage header while extracting\n");
+		fprintf(stderr, "header claims size of %08x (%08x with uimage header)\n", remaining, remaining+sizeof(struct uimage_header));
+		fprintf(stderr, "while multiimage header only has %08x bytes for this part\n", (unsigned int)size);
+		exit(4);
+	};
+	int count = 0;
+	memset(buf, '\0', 4096);
+	while (remaining) {
+		int err = bio_read(dev, buf, start+count, remaining);
+		if (err < 0) {
+			fprintf(stderr, "only wrote %d out of %d bytes\n", count, hdr.ih_size);
+			exit(3);
+		};
+		count += write(ofd, buf, remaining);
+		remaining -= count;
+	};
+	close(ofd);
+};
+
 int main(int argc, char **argv) {
-	struct uboot_header hdr;
+	struct uimage_header hdr;
 	char buf[4096];
 	
 	if (argc < 2) {
@@ -80,18 +118,18 @@ int main(int argc, char **argv) {
 		exit(1);
 	};
 
-	err = bio_read(dev, &hdr, 0, sizeof(struct uboot_header));
+	err = bio_read(dev, &hdr, 0, sizeof(struct uimage_header));
 	if (err < 0)
 		goto err;
 		
-	endian_swap_uboot_header(&hdr);
+	endian_swap_uimage_header(&hdr);
 	
 	/* TODO: check magic */
 		
 	fprintf(stderr, "type:\t%d\n", hdr.ih_type);
 	
 	int count = 0;
-	off_t off = sizeof(struct uboot_header) + 4;
+	off_t off = sizeof(struct uimage_header) + 4;
 	uint32_t size = 0;
 	
 	while(count < 16) {
