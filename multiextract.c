@@ -72,6 +72,13 @@ static void dump_uimage(bdev *dev, off_t start, off_t size) {
 		fprintf(stderr, "error reading header from image starting at %08x\n", (unsigned int)start);
 		exit(2);
 	};
+	
+	endian_swap_uimage_header(&hdr);
+	
+	/* TODO: check magic */
+		
+	fprintf(stderr, "type:\t%d\n", hdr.ih_type);
+
 	start += sizeof(struct uimage_header);
 	fprintf(stderr, "extracting: %s\n", hdr.ih_name);
 	fprintf(stderr, "length: %d\n", hdr.ih_size);
@@ -139,6 +146,9 @@ int main(int argc, char **argv) {
 
 		fprintf(stderr, "size:\t%d\n", size);
 		if (!size) break;
+		
+		dump_uimage(dev, off, size);
+		
 		off += 4;
 		count++;
 	};
