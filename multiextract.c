@@ -63,9 +63,12 @@ static inline void endian_swap_uimage_header(struct uimage_header *hdr) {
 	/* skip string */
 }
 
-static void dump_uimage(bdev *dev, off_t start, off_t size) {
+static void dump_uimage(bdev *dev, off_t start, size_t size) {
 	struct uimage_header hdr;
 	char buf[4096];
+	
+	fprintf(stderr, "start: %lld\n", start);
+	fprintf(stderr, "size: %zd\n", size);
 	
 	int err = bio_read(dev, &hdr, start, sizeof(struct uimage_header));
 	if (err < 0) {
@@ -80,12 +83,18 @@ static void dump_uimage(bdev *dev, off_t start, off_t size) {
 	fprintf(stderr, "type:\t%d\n", hdr.ih_type);
 
 	start += sizeof(struct uimage_header);
+	fprintf(stderr, "start: %d\n", start);	
+	
 	fprintf(stderr, "extracting: %s\n", hdr.ih_name);
 	fprintf(stderr, "length: %d\n", hdr.ih_size);
 	char fn[1024];
 	snprintf(fn, 33, "%s.uImage", (char *)(hdr.ih_name));
 	fprintf(stderr, "writing %s\n", fn);
-	int ofd = open(fn, O_WRONLY);
+	//int ofd = open(fn, O_WRONLY|O_CREAT);
+	int ofd = open("test",  O_WRONLY|O_CREAT|O_NOCTTY|O_NONBLOCK, 0666);
+	#if 1
+	int remaining = size;
+	#else
 	int remaining = hdr.ih_size;
 	if ((remaining+sizeof(struct uimage_header)) > size) {
 		fprintf(stderr, "invalid uImage header while extracting\n");
@@ -93,15 +102,22 @@ static void dump_uimage(bdev *dev, off_t start, off_t size) {
 		fprintf(stderr, "while multiimage header only has %08x bytes for this part\n", (unsigned int)size);
 		exit(4);
 	};
+	#endif
 	int count = 0;
 	memset(buf, '\0', 4096);
 	while (remaining) {
-		int err = bio_read(dev, buf, start+count, remaining);
+		fprintf(stderr, "start: %d\n", start);
+		fprintf(stderr, "remaining: %d\n", remaining);
+		int err = bio_read(dev, buf, start, 4096);
+		fprintf(stderr, "start: %d\n", start);
+
 		if (err < 0) {
-			fprintf(stderr, "only wrote %d out of %d bytes\n", count, hdr.ih_size);
+			fprintf(stderr, "only wrote %d out of %d bytes\n", count, size);
 			exit(3);
 		};
-		count += write(ofd, buf, remaining);
+		count = write(ofd, buf, 4096);
+		fprintf(stderr, "wrote %d bytes\n", count);
+		start += count;
 		remaining -= count;
 	};
 	close(ofd);
@@ -125,7 +141,7 @@ int main(int argc, char **argv) {
 		exit(1);
 	};
 
-	err = bio_read(dev, &hdr, 0, sizeof(struct uimage_header));
+	err = bio_read(dev, &hdr, (off_t)0, sizeof(struct uimage_header));
 	if (err < 0)
 		goto err;
 		
@@ -136,25 +152,30 @@ int main(int argc, char **argv) {
 	fprintf(stderr, "type:\t%d\n", hdr.ih_type);
 	
 	int count = 0;
-	off_t off = sizeof(struct uimage_header);
-	off_t start = off;
+	off_t off = 0;
+	off += sizeof(struct uimage_header);
+
+	uint32_t sizes[16];
 	uint32_t size = 0;
-	
 	while(count < 16) {
-		err = bio_read(dev, &size, off, sizeof(size));
+		err = bio_read(dev, &size, off, (size_t)sizeof(uint32_t));
 		if (err < 0)
 			goto err;
 
 		LE32SWAP(size);
 		fprintf(stderr, "size:\t%d\n", size);
 		if (!size) break;
-
-		fprintf(stderr, "attempting to dump image at %08x of size %08x\n", start, size);
-		dump_uimage(dev, start, size);
-		start += size;
-		
 		off += 4;
+		sizes[count] = size;
 		count++;
+	};
+
+	int i;
+	for(i=0; i<count; i++) {
+		size = sizes[i];
+		fprintf(stderr, "attempting to dump image at %08x of size %08x\n", off, (size_t)size);
+		dump_uimage(dev, off, size);
+		off += size;
 	};
 	
 	err:
