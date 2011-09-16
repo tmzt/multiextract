@@ -142,7 +142,7 @@ static void dump_uimage(bdev *dev, off_t start, size_t size) {
 
 		total += bs;
 		fprintf(stderr, "wrote %llu bytes (%llu total)\n", (unsigned long long)count, (unsigned long long)total);
-		start += bs;
+		start += (off_t)bs;
 		remaining -= bs;
 	};
 	close(ofd);
