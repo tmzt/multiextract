@@ -54,6 +54,22 @@ struct uimage_header {
 	uint8_t		ih_name[32];
 };
 
+static inline void dump_uimage_header(FILE *fp, struct uimage_header *hdr) {
+	fprintf(fp, "ih_magic:\t%08x (%d)\n", hdr->ih_magic, hdr->ih_magic);
+	fprintf(fp, "ih_hcrc:\t%08x (%d)\n", hdr->ih_hcrc, hdr->ih_hcrc);
+	fprintf(fp, "ih_time:\t%08x (%d)\n", hdr->ih_time, hdr->ih_time);
+	fprintf(fp, "ih_size:\t%08x (%d)\n", hdr->ih_size, hdr->ih_size);
+	fprintf(fp, "ih_load:\t%08x (%d)\n", hdr->ih_load, hdr->ih_load);
+	fprintf(fp, "ih_ep:\t%08x (%d)\n", hdr->ih_ep, hdr->ih_ep);
+	fprintf(fp, "ih_dcrc:\t%08x (%d)\n", hdr->ih_dcrc, hdr->ih_dcrc);
+	fprintf(fp, "ih_os:\t%08x (%d)\n", hdr->ih_os, hdr->ih_os);
+	fprintf(fp, "ih_arch:\t%08x (%d)\n", hdr->ih_arch, hdr->ih_arch);
+	fprintf(fp, "ih_type:\t%08x (%d)\n", hdr->ih_type, hdr->ih_type);
+	fprintf(fp, "ih_comp:\t%08x (%d)\n", hdr->ih_comp, hdr->ih_comp);
+	fprintf(fp, "ih_name:\t%s (%s)\n", hdr->ih_name, hdr->ih_name);
+};
+	
+
 static inline void endian_swap_uimage_header(struct uimage_header *hdr) {
 	LE32SWAP(hdr->ih_magic);
 	LE32SWAP(hdr->ih_hcrc);
