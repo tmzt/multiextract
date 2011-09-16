@@ -47,7 +47,7 @@ struct uimage_header {
 	uint32_t	ih_load; /* load address */
 	uint32_t	ih_ep;
 	uint32_t	ih_dcrc;
-	uint8_t		in_os;
+	uint8_t		ih_os;
 	uint8_t		ih_arch;
 	uint8_t		ih_type; /* multi == 4 */
 	uint8_t		ih_comp;
@@ -95,7 +95,10 @@ static void dump_uimage(bdev *dev, off_t start, size_t size) {
 		exit(2);
 	};
 	
+	dump_uimage_header(stderr, &hdr);
 	endian_swap_uimage_header(&hdr);
+	fprintf(stderr, "swapped:\n");
+	dump_uimage_header(stderr, &hdr);
 	
 	/* TODO: check magic */
 		
@@ -170,7 +173,10 @@ int main(int argc, char **argv) {
 	if (err < 0)
 		goto err;
 		
+	dump_uimage_header(stderr, &hdr);
 	endian_swap_uimage_header(&hdr);
+	fprintf(stderr, "swapped:\n");
+	dump_uimage_header(stderr, &hdr);
 	
 	/* TODO: check magic */
 		
