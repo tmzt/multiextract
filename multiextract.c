@@ -134,8 +134,7 @@ static void dump_uimage(bdev *dev, off_t start, size_t size) {
 		if (remaining<bs) bs = remaining;
 		//int err = bio_read(dev, buf, start, (remaining>bs)?bs:remaining);
 		int err = bio_read(dev, buf, start, bs);
-
-		count = (size_t)write(ofd, buf, 4096);
+		count = (size_t)write(ofd, buf, bs);
 		if (count < bs) {
 			fprintf(stderr, "only wrote %zu out of %zu bytes\n", count, bs);
 			exit(4);
