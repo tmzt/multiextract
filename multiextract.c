@@ -96,7 +96,7 @@ static void dump_uimage(bdev *dev, off_t start, size_t size) {
 	//int ofd = open(fn, O_WRONLY|O_CREAT);
 	int ofd = open("test",  O_WRONLY|O_CREAT|O_NOCTTY|O_NONBLOCK, 0666);
 	#if 1
-	size_t remaining = size;
+	size_t remaining = (size_t)size;
 	#else
 	int remaining = hdr.ih_size;
 	if ((remaining+sizeof(struct uimage_header)) > size) {
@@ -106,23 +106,32 @@ static void dump_uimage(bdev *dev, off_t start, size_t size) {
 		exit(4);
 	};
 	#endif
+	size_t bs = 4096;
 	size_t count = 0;
 	size_t total = 0;
+	fprintf(stderr, "block size: %zu\n", bs);
 	memset(buf, '\0', 4096);
 	while (remaining > 0) {
-		fprintf(stderr, "start: %llu\n", (unsigned long long)start);
-		fprintf(stderr, "remaining: %llu\n", (unsigned long long)remaining);
-		int err = bio_read(dev, buf, start, (remaining>4096)?4096:remaining);
+		fprintf(stderr, "start: %zu\n", start);
+		fprintf(stderr, "remaining: %zu\n", remaining);
+		if (remaining<bs) bs = remaining;
+		//int err = bio_read(dev, buf, start, (remaining>bs)?bs:remaining);
+		int err = bio_read(dev, buf, start, bs);
 
 		if (err < 0) {
-			fprintf(stderr, "only wrote %llu out of %llu bytes\n", (unsigned long long)count, (unsigned long long)size);
+			fprintf(stderr, "only wrote %zu out of %zu bytes\n", count, size);
 			exit(3);
 		};
 		count = (size_t)write(ofd, buf, 4096);
-		total += count;
+		if (count < bs) {
+			fprintf(stderr, "only wrote %zu out of %zu bytes\n", count, bs);
+			exit(4);
+		};
+
+		total += bs;
 		fprintf(stderr, "wrote %llu bytes (%llu total)\n", (unsigned long long)count, (unsigned long long)total);
-		start += count;
-		remaining -= count;
+		start += bs;
+		remaining -= bs;
 	};
 	close(ofd);
 };
@@ -157,7 +166,7 @@ int main(int argc, char **argv) {
 	
 	int count = 0;
 	off_t off = 0;
-	off += sizeof(struct uimage_header);
+	off = (off_t)sizeof(struct uimage_header);
 
 	uint32_t sizes[16];
 	uint32_t size = 0;
