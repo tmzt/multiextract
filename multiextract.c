@@ -66,7 +66,7 @@ static inline void dump_uimage_header(FILE *fp, struct uimage_header *hdr) {
 	fprintf(fp, "ih_arch:\t%08x (%d)\n", hdr->ih_arch, hdr->ih_arch);
 	fprintf(fp, "ih_type:\t%08x (%d)\n", hdr->ih_type, hdr->ih_type);
 	fprintf(fp, "ih_comp:\t%08x (%d)\n", hdr->ih_comp, hdr->ih_comp);
-	fprintf(fp, "ih_name:\t%s (%s)\n", hdr->ih_name, hdr->ih_name);
+	fprintf(fp, "ih_name:\t%s (%32x)\n", (char *)hdr->ih_name, (char *)hdr->ih_name);
 };
 	
 
@@ -102,6 +102,8 @@ static void dump_uimage(bdev *dev, off_t start, size_t size) {
 	dump_uimage_header(stderr, &hdr);
 	
 	/* TODO: check magic */
+
+	fprintf(stderr, "ih_name[0]:\t%0x\n", hdr.ih_name[0]);
 		
 	fprintf(stderr, "type:\t%d\n", hdr.ih_type);	
 	fprintf(stderr, "extracting: %s\n", hdr.ih_name);
@@ -206,7 +208,7 @@ int main(int argc, char **argv) {
 		size = sizes[i];
 		fprintf(stderr, "attempting to dump image at %08x (%zd) of size %08x (%zu)\n", off, off, size, size);
 		dump_uimage(dev, off, size);
-		off += size;
+		off += (off_t)size;
 	};
 	
 	err:
