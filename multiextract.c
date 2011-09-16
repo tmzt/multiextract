@@ -107,10 +107,10 @@ static void dump_uimage(bdev *dev, off_t start, size_t size) {
 	fprintf(stderr, "extracting: %s\n", hdr.ih_name);
 	fprintf(stderr, "length: %d\n", hdr.ih_size);
 	char fn[1024];
-	snprintf(fn, 33, "%s.uImage", (char *)(hdr.ih_name));
+	snprintf(fn, 40, "%s.uImage", (char *)(hdr.ih_name));
 	fprintf(stderr, "writing %s\n", fn);
 	//int ofd = open(fn, O_WRONLY|O_CREAT);
-	int ofd = open("test",  O_WRONLY|O_CREAT|O_NOCTTY|O_NONBLOCK, 0666);
+	int ofd = open(fn,  O_WRONLY|O_CREAT|O_NOCTTY|O_NONBLOCK, 0666);
 	#if 1
 	size_t remaining = (size_t)size;
 	#else
