@@ -24,8 +24,11 @@
  */
 
 
-#include <stdio.h>
 #include <stdlib.h>
+#define __USE_LARGEFILE64 1
+#define __USE_FILE_OFFSET64 1
+#include <stdio.h>
+#include <sys/errno.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/fcntl.h>
@@ -166,14 +169,14 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "size:\t%d\n", size);
 		if (!size) break;
 		off += 4;
-		sizes[count] = size;
+		sizes[count] = (size_t)size;
 		count++;
 	};
 
 	int i;
 	for(i=0; i<count; i++) {
 		size = sizes[i];
-		fprintf(stderr, "attempting to dump image at %08x of size %08x\n", off, (size_t)size);
+		fprintf(stderr, "attempting to dump image at %08x (%d) of size %08x (%d)\n", off, off, size, size);
 		dump_uimage(dev, off, size);
 		off += size;
 	};
