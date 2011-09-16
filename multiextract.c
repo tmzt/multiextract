@@ -112,7 +112,6 @@ static void dump_uimage(bdev *dev, off_t start, size_t size) {
 		fprintf(stderr, "start: %d\n", start);
 		fprintf(stderr, "remaining: %d\n", remaining);
 		int err = bio_read(dev, buf, start, 4096);
-		fprintf(stderr, "start: %d\n", start);
 
 		if (err < 0) {
 			fprintf(stderr, "only wrote %d out of %d bytes\n", count, size);
